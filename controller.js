@@ -1,19 +1,28 @@
-import KafkaConfig from "./config.js";
+import Kafka from 'kafka-node';
 
 const sendMessageToKafka = async (req, res) => {
-  try {
-    const { message } = req.body;
-    const kafkaConfig = new KafkaConfig();
-    const messages = [{ key: "key1", value: message }];
-    kafkaConfig.produce("my-topic", messages);
+  const { message } = req.body;
 
-    res.status(200).json({
-      status: "Ok!",
-      message: "Message successfully send!",
+  const user = new Kafka.KafkaClient({ kafkaHost: process.env.KAFKA_HOST });
+  const producer = new Kafka.Producer(user);
+  
+  producer.on('ready', () => {
+    const payload = [
+      { topic: 'My-topic', messages: message },
+      { topic: 'My-topic', messages: "message 2" },
+      { topic: 'My-topic', messages: "message 3" },
+    ];
+  
+    producer.send(payload, (error, data) => {
+      return (error) 
+        ? console.error('Error in publishing message:', error)
+        : console.log('Message successfully published:', data);
     });
-  } catch (error) {
-    console.log(error);
-  }
+  });
+  
+  producer.on('error', (error) => console.error('Error connecting to Kafka:', error));
+
+  res.status(200).json({ message: "Message successfully send!" });
 };
 
 const constrollers = { sendMessageToKafka };
